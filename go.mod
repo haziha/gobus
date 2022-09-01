@@ -1,3 +1,3 @@
-module bus
+module gobus
 
 go 1.19
