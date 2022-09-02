@@ -60,7 +60,19 @@ func (gb *GoBus) goroutine() {
 					log.Printf("gobus: %v\n", err)
 					continue
 				}
-				e.Value.fnVal.Call(out)
+				func() {
+					defer func() {
+						if err1 := recover(); err1 != nil {
+							err = fmt.Errorf("%v", err1)
+						}
+					}()
+
+					e.Value.fnVal.Call(out)
+				}()
+				if err != nil {
+					log.Printf("gobus: call panic %v\n", err.Error())
+					continue
+				}
 			}
 		}
 
@@ -77,7 +89,21 @@ func convArgs(in []reflect.Value, outType reflect.Type) (out []reflect.Value, er
 
 	out = make([]reflect.Value, 0)
 	for i := 0; i < outType.NumIn(); i++ {
-		if outType.In(i) == in[i].Type() {
+		if outType.In(i) == in[i].Type() { // 类型完全相同
+			out = append(out, in[i])
+		} else if outType.In(i).Kind() == reflect.Interface { // 类型为 interface
+			// 需要检查方法是否都有实现
+			if outType.In(i).NumMethod() > in[i].NumMethod() { // 存在的方法比所需的方法少, 直接返回error
+				err = fmt.Errorf("income num method > input num method")
+				return
+			}
+			for j := 0; j < outType.In(i).NumMethod(); j++ {
+				name := outType.In(i).Method(j).Name
+				if !in[i].MethodByName(name).IsValid() {
+					err = fmt.Errorf("not found method \"%s\" in %v", name, in[i].Type())
+					return
+				}
+			}
 			out = append(out, in[i])
 		} else {
 			err = fmt.Errorf("income[%d] type(%v) != input[%d] type(%v)", i, in[i].Type(), i, outType.In(i))

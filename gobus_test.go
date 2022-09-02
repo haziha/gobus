@@ -20,6 +20,28 @@ func (d demo) Test() {
 	fmt.Println("a:", d.a)
 }
 
+func (d demo) Error() string {
+	return "this is Error method"
+}
+
+func TestGoBus_Bind2(t *testing.T) {
+	b := New(0, 0)
+	_, _ = b.Bind("test", func(err error) {
+		fmt.Println("err:", err)
+	})
+	_ = b.Trigger("test", &demo{})
+	time.Sleep(time.Second)
+}
+
+func TestGoBus_Trigger2(t *testing.T) {
+	b := New(0, 0)
+	_, _ = b.Bind("test", func() {
+		panic("demo panic")
+	})
+	_ = b.Trigger("test")
+	time.Sleep(time.Second)
+}
+
 func TestGoBus_Connect(t *testing.T) {
 	b := New(0, 1)
 	_, _ = b.Bind("test", func() {
