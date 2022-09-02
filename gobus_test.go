@@ -19,6 +19,18 @@ func (d demo) Test() {
 	fmt.Println("a:", d.a)
 }
 
+func TestGoBus_Triggers(t *testing.T) {
+	bus := New(0, 1)
+	_, _ = bus.Bind("test", func() {
+		fmt.Println("test call")
+	})
+	_, _ = bus.Bind("test1", func() {
+		fmt.Println("test1 call")
+	})
+	_ = bus.Triggers([]string{"test", "test1"}, "arg1")
+	time.Sleep(time.Second)
+}
+
 func TestGoBus_Trigger(t *testing.T) {
 	d := &demo{a: 100}
 	bus := New(0, 0)

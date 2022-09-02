@@ -17,6 +17,16 @@ var inElementPool = sync.Pool{
 	},
 }
 
+func (gb *GoBus) Triggers(events []string, args ...interface{}) (err error) {
+	for i := range events {
+		err1 := gb.Trigger(events[i], args...)
+		if err1 != nil {
+			err = err1
+		}
+	}
+	return
+}
+
 func (gb *GoBus) Trigger(event string, args ...interface{}) (err error) {
 	defer func() {
 		if err1 := recover(); err1 != nil {
