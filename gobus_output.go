@@ -2,7 +2,7 @@ package gobus
 
 import (
 	"fmt"
-	"gobus/go_list"
+	"github.com/haziha/golist"
 	"reflect"
 )
 
@@ -22,7 +22,7 @@ func (gb *GoBus) Unbind(event string, fns ...interface{}) {
 	if len(fns) != 0 {
 		for i := range fns {
 			val := reflect.ValueOf(fns[i])
-			ele := make([]*go_list.Element[outElement], 0)
+			ele := make([]*golist.Element[outElement], 0)
 			for element := gb.outMap[event].Front(); element != nil; element = element.Next() {
 				if reflect.DeepEqual(val, element.Value.fnVal) {
 					ele = append(ele, element)
@@ -59,7 +59,7 @@ func (gb *GoBus) Bind(event string, fn interface{}) (unbindFunc func(), err erro
 	defer gb.rwLock.Unlock()
 
 	if _, ok := gb.outMap[event]; !ok {
-		gb.outMap[event] = go_list.New[outElement]()
+		gb.outMap[event] = golist.New[outElement]()
 	}
 	element := gb.outMap[event].PushBack(oe)
 

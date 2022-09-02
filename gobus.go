@@ -3,7 +3,7 @@ package gobus
 import (
 	"context"
 	"fmt"
-	"gobus/go_list"
+	"github.com/haziha/golist"
 	"log"
 	"reflect"
 	"sync"
@@ -19,7 +19,7 @@ func New(inBufLen, routineCount int) (gb *GoBus) {
 
 	gb = new(GoBus)
 	gb.inChan = make(chan *inElement, inBufLen)
-	gb.outMap = make(map[string]*go_list.List[outElement])
+	gb.outMap = make(map[string]*golist.List[outElement])
 	for i := 0; i < routineCount; i++ {
 		go gb.goroutine()
 	}
@@ -33,7 +33,7 @@ type GoBus struct {
 	rwLock sync.RWMutex
 
 	inChan chan *inElement
-	outMap map[string]*go_list.List[outElement]
+	outMap map[string]*golist.List[outElement]
 
 	ctx        context.Context
 	cancelFunc context.CancelFunc
