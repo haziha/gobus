@@ -17,6 +17,55 @@ var inElementPool = sync.Pool{
 	},
 }
 
+func (gb *GoBus) Connect(events []string, fn interface{}) (err error) {
+	defer func() {
+		if err1 := recover(); err1 != nil {
+			err = fmt.Errorf("gobus: connect fail %v", err1)
+		}
+	}()
+	fnVal := reflect.ValueOf(fn)
+	if fnVal.Kind() != reflect.Ptr {
+		err = fmt.Errorf("fn must be ptr, but %v", fnVal.Kind())
+		return
+	} else if fnVal.IsZero() {
+		err = fmt.Errorf("fn point to nil")
+		return
+	} else if fnVal.Elem().Kind() != reflect.Func {
+		err = fmt.Errorf("fn must point to func, but %v", fnVal.Elem().Kind())
+		return
+	}
+	fnVal = fnVal.Elem()
+	if !fnVal.CanSet() {
+		err = fmt.Errorf("fn must point to func and can set")
+		return
+	}
+	var fnRtVal []reflect.Value
+	if fnVal.Type().NumOut() > 0 {
+		fnRtVal = make([]reflect.Value, 0, fnVal.Type().NumOut())
+		for i := 0; i < fnVal.Type().NumOut(); i++ {
+			fnRtVal = append(fnRtVal, reflect.New(fnVal.Type().Out(i)).Elem())
+		}
+	}
+
+	newFnVal := reflect.MakeFunc(fnVal.Type(), func(in []reflect.Value) (out []reflect.Value) {
+		for i := range events {
+			ie := inElementPool.Get().(*inElement)
+			ie.event = events[i]
+			ie.in = in
+			select {
+			case gb.inChan <- ie:
+			case <-gb.ctx.Done():
+				err = fmt.Errorf("gobus: closed")
+				return
+			}
+		}
+		return fnRtVal
+	})
+	fnVal.Set(newFnVal)
+
+	return
+}
+
 func (gb *GoBus) Triggers(events []string, args ...interface{}) (err error) {
 	for i := range events {
 		err1 := gb.Trigger(events[i], args...)

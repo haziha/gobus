@@ -12,11 +12,28 @@ func test() {
 }
 
 type demo struct {
-	a int
+	a  int
+	Fn func()
 }
 
 func (d demo) Test() {
 	fmt.Println("a:", d.a)
+}
+
+func TestGoBus_Connect(t *testing.T) {
+	b := New(0, 1)
+	_, _ = b.Bind("test", func() {
+		fmt.Println("test call")
+	})
+	_, _ = b.Bind("test1", func() {
+		fmt.Println("test1 call")
+	})
+	d := &demo{}
+	if err := b.Connect([]string{"test", "test1"}, &d.Fn); err != nil {
+		fmt.Println(err)
+	}
+	d.Fn()
+	time.Sleep(time.Second)
 }
 
 func TestGoBus_Triggers(t *testing.T) {
