@@ -48,18 +48,17 @@ func (gb *GoBus) Connect(events []string, fn interface{}) (err error) {
 	}
 
 	newFnVal := reflect.MakeFunc(fnVal.Type(), func(in []reflect.Value) (out []reflect.Value) {
+		out = fnRtVal
 		for i := range events {
 			ie := inElementPool.Get().(*inElement)
 			ie.event = events[i]
 			ie.in = in
-			select {
-			case gb.inChan <- ie:
-			case <-gb.ctx.Done():
-				err = fmt.Errorf("gobus: closed")
+			err := gb.inChan.Push(ie)
+			if err != nil {
 				return
 			}
 		}
-		return fnRtVal
+		return
 	})
 	fnVal.Set(newFnVal)
 
@@ -91,11 +90,7 @@ func (gb *GoBus) Trigger(event string, args ...interface{}) (err error) {
 		ie.in = append(ie.in, reflect.ValueOf(args[i]))
 	}
 
-	select {
-	case gb.inChan <- ie:
-	case <-gb.ctx.Done():
-		err = fmt.Errorf("gobus: closed")
-	}
+	err = gb.inChan.Push(ie)
 
 	return
 }

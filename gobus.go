@@ -1,8 +1,8 @@
 package gobus
 
 import (
-	"context"
 	"fmt"
+	"github.com/haziha/gochan"
 	"github.com/haziha/golist"
 	"log"
 	"reflect"
@@ -11,20 +11,18 @@ import (
 
 func New(inBufLen, routineCount int) (gb *GoBus) {
 	if inBufLen < 0 {
-		inBufLen = 0
+		inBufLen = -1
 	}
 	if routineCount <= 0 {
 		routineCount = 1
 	}
 
 	gb = new(GoBus)
-	gb.inChan = make(chan *inElement, inBufLen)
+	gb.inChan = gochan.New[*inElement](inBufLen)
 	gb.outMap = make(map[string]*golist.List[outElement])
 	for i := 0; i < routineCount; i++ {
 		go gb.goroutine()
 	}
-
-	gb.ctx, gb.cancelFunc = context.WithCancel(context.Background())
 
 	return
 }
@@ -32,20 +30,14 @@ func New(inBufLen, routineCount int) (gb *GoBus) {
 type GoBus struct {
 	rwLock sync.RWMutex
 
-	inChan chan *inElement
+	inChan *gochan.GoChan[*inElement]
 	outMap map[string]*golist.List[outElement]
-
-	ctx        context.Context
-	cancelFunc context.CancelFunc
 }
 
 func (gb *GoBus) goroutine() {
 	for {
-		var ie *inElement
-		select {
-		case ie = <-gb.inChan:
-			break
-		case <-gb.ctx.Done():
+		ie, ok := gb.inChan.Pop()
+		if !ok {
 			return
 		}
 
@@ -116,8 +108,7 @@ func convArgs(in []reflect.Value, outType reflect.Type) (out []reflect.Value, er
 }
 
 func (gb *GoBus) Close() {
-	gb.cancelFunc()
-	close(gb.inChan)
+	gb.inChan.Close()
 	for k := range gb.outMap {
 		for gb.outMap[k].Len() != 0 {
 			gb.outMap[k].Remove(gb.outMap[k].Back())

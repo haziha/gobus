@@ -1,2 +1,4 @@
-github.com/haziha/golist v0.0.0-20220902073734-7e870bbcff32 h1:Z/Em6UMEtVKhDF9w00BDBV81YHAfciqGx6Di4s9fsgc=
-github.com/haziha/golist v0.0.0-20220902073734-7e870bbcff32/go.mod h1:Q3Mbu0Dx7uLbhW+9ilRzdiYjcQRzOkalGQuvPorR0uI=
+github.com/haziha/gochan v0.0.0-20220903152805-ae7d7f5b528b h1:cXln7C4d+cqlI+Zodbr35UiX0l1a6d8dgAqX6Zql3V4=
+github.com/haziha/gochan v0.0.0-20220903152805-ae7d7f5b528b/go.mod h1:7e3XoXqE8nY2v4A/wYf8awaLjICqANfKDJqN6DYMzeg=
+github.com/haziha/golist v0.0.0-20220903124312-7dd4df4c161f h1:D9TOqmG+j2waDlSvQiQ+fxDLhr1jGZl4r9zgMd3yCis=
+github.com/haziha/golist v0.0.0-20220903124312-7dd4df4c161f/go.mod h1:Q3Mbu0Dx7uLbhW+9ilRzdiYjcQRzOkalGQuvPorR0uI=

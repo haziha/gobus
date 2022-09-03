@@ -41,17 +41,13 @@ func (gb *GoBus) Unbind(event string, fns ...interface{}) {
 
 func (gb *GoBus) Bind(event string, fn interface{}) (unbindFunc func(), err error) {
 	fnVal := reflect.ValueOf(fn)
-	var oe *outElement = nil
+	var oe outElement
 
 	if fnVal.Kind() == reflect.Func {
-		oe = new(outElement)
 		oe.fnType = fnVal.Type()
 		oe.fnVal = fnVal
 	} else {
 		err = fmt.Errorf("gobus: bind fail, unknown type")
-	}
-
-	if oe == nil {
 		return
 	}
 
