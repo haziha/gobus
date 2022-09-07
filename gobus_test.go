@@ -1,6 +1,7 @@
 package gobus
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"testing"
@@ -22,6 +23,24 @@ func (d demo) Test() {
 
 func (d demo) Error() string {
 	return "this is Error method"
+}
+
+func TestGoBus_ConvertType2(t *testing.T) {
+	b := New(0, 0)
+	_, _ = b.Bind("test", func(args ...interface{}) {
+		fmt.Println(args)
+	})
+	_ = b.Trigger("test", "this is string", true, 2333, nil)
+	time.Sleep(time.Second)
+}
+
+func TestGoBus_ConvertType(t *testing.T) {
+	b := New(0, 0)
+	_, _ = b.Bind("test", func(a uint64, b int8, c string) {
+		fmt.Println(a, b, c)
+	})
+	_ = b.Trigger("test", int8(1), uint64(2), json.Number("json.Number"))
+	time.Sleep(time.Second)
 }
 
 func TestGoBus_Bind2(t *testing.T) {

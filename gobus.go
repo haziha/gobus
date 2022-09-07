@@ -34,6 +34,14 @@ type GoBus struct {
 	outMap map[string]*golist.List[outElement]
 }
 
+func (gb *GoBus) Cap() int {
+	return gb.inChan.Cap()
+}
+
+func (gb *GoBus) Len() int {
+	return gb.inChan.Len()
+}
+
 func (gb *GoBus) goroutine() {
 	for {
 		ie, ok := gb.inChan.Pop()
@@ -62,7 +70,7 @@ func (gb *GoBus) goroutine() {
 					e.Value.fnVal.Call(out)
 				}()
 				if err != nil {
-					log.Printf("gobus: call panic %v\n", err.Error())
+					log.Printf("gobus: call panic\n%v\n", err.Error())
 					continue
 				}
 			}
@@ -74,33 +82,51 @@ func (gb *GoBus) goroutine() {
 }
 
 func convArgs(in []reflect.Value, outType reflect.Type) (out []reflect.Value, err error) {
-	if len(in) < outType.NumIn() {
-		err = fmt.Errorf("income args (%d) less than input args (%d)", len(in), outType.NumIn())
+	defer func() {
+		if err1 := recover(); err1 != nil {
+			err = fmt.Errorf("convArgs panic\n%v", err1)
+		}
+	}()
+	if (outType.IsVariadic() && len(in) < outType.NumIn()-1) || (!outType.IsVariadic() && len(in) < outType.NumIn()) {
+		err = fmt.Errorf("too few input arguments")
 		return
 	}
 
-	out = make([]reflect.Value, 0)
-	for i := 0; i < outType.NumIn(); i++ {
+	out = make([]reflect.Value, 0, outType.NumIn())
+	numIn := outType.NumIn()
+	if outType.IsVariadic() {
+		numIn--
+	}
+
+	for i := 0; i < numIn; i++ {
 		if outType.In(i) == in[i].Type() { // 类型完全相同
 			out = append(out, in[i])
-		} else if outType.In(i).Kind() == reflect.Interface { // 类型为 interface
-			// 需要检查方法是否都有实现
-			if outType.In(i).NumMethod() > in[i].NumMethod() { // 存在的方法比所需的方法少, 直接返回error
-				err = fmt.Errorf("income num method > input num method")
+		} else if in[i].CanConvert(outType.In(i)) { // 判断能否转换
+			out = append(out, in[i].Convert(outType.In(i)))
+		} else {
+			err = fmt.Errorf("cannot convert %v to %v", in[i].Type(), outType.In(i))
+			return
+		}
+	}
+
+	if outType.IsVariadic() {
+		elemType := outType.In(outType.NumIn() - 1).Elem()
+		for i := numIn; i < len(in); i++ {
+			if in[i].Kind() == reflect.Invalid {
+				if elemType.Kind() != reflect.Interface {
+					err = fmt.Errorf("cannot convert nil to %v", elemType)
+					return
+				} else {
+					out = append(out, reflect.New(elemType).Elem())
+				}
+			} else if in[i].Type() == elemType {
+				out = append(out, in[i])
+			} else if in[i].CanConvert(elemType) {
+				out = append(out, in[i].Convert(elemType))
+			} else {
+				err = fmt.Errorf("cannot convert element %v to %v", in[i].Type(), elemType)
 				return
 			}
-			for j := 0; j < outType.In(i).NumMethod(); j++ {
-				name := outType.In(i).Method(j).Name
-				if !in[i].MethodByName(name).IsValid() {
-					err = fmt.Errorf("not found method \"%s\" in %v", name, in[i].Type())
-					return
-				}
-			}
-			out = append(out, in[i])
-		} else {
-			err = fmt.Errorf("income[%d] type(%v) != input[%d] type(%v)", i, in[i].Type(), i, outType.In(i))
-			out = nil
-			return
 		}
 	}
 
